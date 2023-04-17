@@ -44,7 +44,7 @@ def upload_har_file():
     <div class="container my-4">
         <div class='col-md-8'>
         <h1>Update HAR into Database</h1>
-            <form action="/ads/har" method="POST" enctype="multipart/form-data">
+            <form action="/facebook/har" method="POST" enctype="multipart/form-data">
                 <label class="form-text">Upload Har: </label>
                 <input type="file" class="form-control my-2" name="file" required/>
                 <label class="form-text">Upload Image: </label>

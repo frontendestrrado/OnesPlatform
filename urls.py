@@ -4,4 +4,4 @@ from app import app
 
 
 app.register_blueprint(index_blueprint, url_prefix='/')
-app.register_blueprint(ads_library_blueprint, url_prefix='/ads')
+app.register_blueprint(ads_library_blueprint, url_prefix='/facebook')
