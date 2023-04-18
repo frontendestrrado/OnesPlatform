@@ -42,33 +42,15 @@ def Convert_extract_upload(har_txt, settings, image_obj):
                                     result['ad_id'] = data['sponsored_data']['ad_id']
                                     result['post_type'] = data['__typename']
                                     result['date'] = datetime.datetime.now()
-                                    for i in data['comet_sections']['content']['story']['attachments']:
-                                        if 'large_share_image' in i['styles']['attachment']['media']:
-                                            result['post_image'] = i['styles']['attachment']['media']['large_share_image'][
-                                                    'uri']
-                                        elif "card_image" in i['styles']['attachment']['media']:
-                                            result['post_image'] = i['styles']['attachment']['media']['card_image'][
-                                                'uri']
-                                        else:
-                                            result['post_image'] = ""
+                                    result['post_image'] = extract_image(data)
                                     for actor in data['comet_sections']['content']['story']['actors']:
                                         result['post_id'] = data['post_id']
                                         result['page_name'] = actor['name']
                                         result['page_url'] = actor['url']
                                         result['page_id'] = actor['id']
                                         result['settings'] = merge_dicts_(actor['name'].replace('.', ''), image_obj)
-                                        if 'category_type' in \
-                                                data['comet_sections']['content']['story']['comet_sections'][
-                                                    'context_layout']['story']['comet_sections']['actor_photo'][
-                                                    'story']['actors'][
-                                                    0]:
-                                            result['category'] = \
-                                                data['comet_sections']['content']['story']['comet_sections'][
-                                                    'context_layout'][
-                                                    'story']['comet_sections']['actor_photo']['story']['actors'][0][
-                                                    'category_type']
-                                        else:
-                                            result['category'] = ''
+                                        result['category'] = extract_category(data)
+
                                     result["post_link"] = data['comet_sections']['content']['story']['wwwURL']
                                     filters = data['comet_sections']['feedback']['story']['feedback_context'][
                                         'feedback_target_with_context'][
@@ -108,41 +90,27 @@ def Convert_extract_upload(har_txt, settings, image_obj):
                                             'attachment']['title_with_entities']['text']
                                     else:
                                         result['title'] = ''
+
                                     action_filter = data['comet_sections']['content']['story']['attachments'][0][
                                         'comet_footer_renderer']['attachment']
-                                    if 'call_to_action_renderer' in action_filter:
-                                        if 'attachment' in action_filter['call_to_action_renderer']:
-                                            result['call_to_action_button'] = \
-                                                action_filter['call_to_action_renderer']['action_link']['title']
+                                    result['call_to_action_button'] = extract_call_to_action_button(action_filter)
+                                    item_list = data['comet_sections']['content']['story']['attachments'][0]['styles'][
+                                        'attachment']
+                                    if "media" in item_list:
+                                        video_filter_check = item_list['media']
+                                        if 'playable_url' in video_filter_check:
+                                            result['video_mp4'] = video_filter_check['playable_url']
+                                            if 'playable_url_quality_hd' in video_filter_check:
+                                                result['video_HD'] = video_filter_check['playable_url_quality_hd']
                                         else:
-                                            result['call_to_action_button'] = ''
-                                    else:
-                                        result['call_to_action_button'] = ''
-
-                                    video_filter_check = \
-                                        data['comet_sections']['content']['story']['attachments'][0]['styles'][
-                                            'attachment']['media']
-                                    if 'playable_url' in video_filter_check:
-                                        result['video_mp4'] = video_filter_check['playable_url']
-                                        if 'playable_url_quality_hd' in video_filter_check:
-                                            result['video_HD'] = video_filter_check['playable_url_quality_hd']
+                                            result['video_mp4'] = ''
+                                            result['video_HD'] = ''
                                     else:
                                         result['video_mp4'] = ''
                                         result['video_HD'] = ''
                                     message = data['comet_sections']['content']['story']
-                                    if 'message' in message:
-                                        if message['message'] is not None:
-                                            result['context'] = data['comet_sections']['content']['story']['message'][
-                                                'text']
-                                            result['lang'] = languages.get(alpha_2=detect(
-                                                data['comet_sections']['content']['story']['message']['text'])).name
-
-                                        else:
-                                            result['context'] = ""
-                                            result['lang'] = ''
-                                    else:
-                                        result['context'] = ""
-                                        result['lang'] = ''
+                                    result['context'] = extract_context(message, data)
+                                    result['lang'] = extract_lang(message, data)
                                     result['setting'] = {"Why Am I Seeming this ads?": settings}
                                     final.append(result)
     return final
@@ -253,7 +221,7 @@ def image_list(images, path):
     items_data = []
     for image_file in images:
         image = Image.open(path + str(image_file))
-        sample_text = pytesseract.image_to_string(image)
+        sample_text = pytesseract.image_to_string(image, lang='chi_sim+kor')
         remove_special_char = re.sub(r'[^\w\s]', '', sample_text).strip()
         items = remove_special_char.split('\n')
         while "" in items:
@@ -284,7 +252,7 @@ def image_to_text_data():
 
 def merge_dicts_(page_name, image_data):
     for data in image_data:
-        if page_name in image_data[data]['page_name']:
+        if page_name in image_data[data]['page_name'].replace(" ", ""):
             return image_data[data]
 
 
@@ -299,4 +267,56 @@ def save_image_to_dir(files):
             filename = secure_filename(file.filename)
             file_names.append(filename)
             file.save(os.path.join(str(os.getcwd())+'/screenshots/', filename))
+
+
+def extract_image(data):
+    for i in data['comet_sections']['content']['story']['attachments']:
+        if "media" in i['styles']['attachment']:
+            if 'large_share_image' in i['styles']['attachment']['media']:
+                return i['styles']['attachment']['media']['large_share_image'][
+                    'uri']
+            if "card_image" in i['styles']['attachment']['media']:
+                return i['styles']['attachment']['media']['card_image'][
+                    'uri']
+    return ""
+
+
+def extract_category(data):
+    if 'category_type' in data['comet_sections']['content']['story']['comet_sections'][
+        'context_layout']['story']['comet_sections']['actor_photo']['story']['actors'][0]:
+        return data['comet_sections']['content']['story']['comet_sections'][
+            'context_layout'][
+            'story']['comet_sections']['actor_photo']['story']['actors'][0][
+            'category_type']
+    return ''
+
+
+def extract_context(message, data):
+    try:
+        if 'message' in message:
+            if message['message'] is not None:
+                return data['comet_sections']['content']['story']['message']['text']
+        return ""
+    except:
+        return ""
+
+
+def extract_lang(message, data):
+    try:
+        if 'message' in message:
+            if message['message'] is not None:
+                return languages.get(alpha_2=detect(data['comet_sections']['content']['story']['message']['text'])).name
+        return ''
+    except:
+        return ''
+
+
+def extract_call_to_action_button(action_filter):
+    try:
+        if 'call_to_action_renderer' in action_filter:
+            if 'attachment' in action_filter['call_to_action_renderer']:
+                return action_filter['call_to_action_renderer']['action_link']['title']
+        return ''
+    except:
+        return ''
 

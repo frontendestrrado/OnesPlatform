@@ -16,8 +16,8 @@ class PageKeys:
 
 
 class PageKeyWords:
-    MAIN_PAGE: List[str] = ["wants to reach people like you who may have"]
-    PAGE_NAME: List[str] = ["wants to reach people like you who may have"]
+    MAIN_PAGE: List[str] = ["wants to reach people like you who may have", "wants 10 reach people like you who may have"]
+    PAGE_NAME: List[str] = ["wants to reach people like you who may have", "wants 10 reach people like you who may have"]
     PAGE_INTERESTS: List[str] = ["shown interest in"]
     AGE: List[str] = ["set their age"]
     LOCATION: List[str] = ["aprimary location in"]
